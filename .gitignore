@@ -1,0 +1,55 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.so
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Environments
+.env
+.venv/
+env/
+venv/
+.pixi/
+
+# Build products
+build/
+dist/
+*.egg-info/
+
+# Local IDE files
+.vscode/
+.idea/
+
+# Generated outputs
+outputs/
+output_eval/
+logs/
+runs/
+lightning_logs/
+wandb/
+
+# Datasets and caches
+/data/
+/cache/
+/pose_dataset/
+
+# Checkpoints and model/data blobs
+pretrained/
+*.pt
+*.pth
+*.ckpt
+*.onnx
+*.pkl
+*.npz
+*.npy
+*.tar
+*.tar.gz
+*.zip
+
+# Misc
+*.log
+*.tmp
+.DS_Store

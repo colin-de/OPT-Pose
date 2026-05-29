@@ -1,0 +1,21 @@
+OPT-Pose Notice
+===============
+
+Project-owned code and documentation in this release are licensed under
+CC-BY-NC-SA-4.0. Third-party notices and copyright headers in source files are
+preserved and remain applicable to those files.
+
+This release includes or derives from components with upstream notices,
+including:
+
+- VGGT / Meta Platforms code with Apache-style source notices in `opt/` and
+  `training/`.
+- SONATA components with Apache License, Version 2.0 notices in `sonata/`.
+- BOP Toolkit components in `bop_toolkit_lib/`.
+- PointNet++ components with Facebook copyright notices in `geo_models/`.
+- Evaluation utilities with Gorilla Lab, SCUT notices in `utils/`.
+- Transform utilities carrying original Christoph Gohlke and Regents of the
+  University of California copyright notices.
+
+Model checkpoints, datasets, generated logs, and experiment outputs are not
+included in this repository.

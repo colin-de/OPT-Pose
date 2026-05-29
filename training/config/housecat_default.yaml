@@ -1,0 +1,349 @@
+# SPDX-License-Identifier: CC-BY-NC-SA-4.0
+# Project-owned portions of this file are licensed under CC-BY-NC-SA-4.0.
+# See LICENSE and NOTICE for details. Third-party notices remain applicable.
+
+exp_name: housecat_default
+img_size: 518
+num_workers: 12
+seed_value: 42
+accum_steps: 1
+patch_size: 14
+val_epoch_freq: 1
+max_img_per_gpu: 24
+
+data:
+  train:
+    _target_: data.dynamic_dataloader.DynamicTorchDataset
+    num_workers: ${num_workers}
+    max_img_per_gpu: ${max_img_per_gpu}
+    pin_memory: true
+    common_config:
+      img_size: ${img_size}
+      patch_size: ${patch_size}
+      debug: False
+      repeat_batch: False
+      img_nums: [2, 4]
+    dataset:
+      _target_: data.composed_dataset.ComposedDataset
+      dataset_configs:
+        - _target_: data.datasets.housecat.HouseCat6DPoseDataset
+          split: train
+          data_root: ${oc.env:HOUSECAT6D_ROOT,./data/HouseCat6D}
+          min_num_images: 2
+          force_rebuild_cache: False
+          seq_length: -1  # -1 means all sequences
+          img_length: -1  # -1 means all images per sequence
+          sample_num: 1024  # Number of points to sample for choose indices
+
+  val:
+    _target_: data.dynamic_dataloader.DynamicTorchDataset
+    num_workers: ${num_workers}
+    max_img_per_gpu: ${max_img_per_gpu}
+    shuffle: False  # Disable shuffle for stable validation
+    common_config:
+      img_size: ${img_size}
+      patch_size: ${patch_size}
+      debug: False
+      fix_img_num: 2  # Fix to 2 images per sequence for consistent validation
+      fix_aspect_ratio: 1.0
+      training: False
+      inside_random: False  # Disable random sampling for validation
+      img_nums: [2, 2]  # Fixed range for consistent batch shapes
+      augs:
+        aspects: [1.0, 1.0]  # Fixed aspect ratio
+    dataset:
+      _target_: data.composed_dataset.ComposedDataset
+      dataset_configs:
+        - _target_: data.datasets.housecat.HouseCat6DPoseDataset
+          split: test
+          data_root: ${data.train.dataset.dataset_configs.0.data_root}
+          min_num_images: 2
+          seq_length: -1  # -1 means all sequences
+          img_length: -1  # -1 means all images per sequence
+          sample_num: 1024  # Number of points to sample for choose indices
+
+logging:
+  log_dir: outputs/${exp_name}
+  log_visuals: True
+  log_freq: 1
+  log_level_primary: DEBUG
+  log_level_secondary: WARNING
+  all_ranks: False
+  tensorboard_writer:
+    _target_: train_utils.tb_writer.TensorBoardLogger
+    path: ${logging.log_dir}/tensorboard
+  log_visual_frequency:
+    train: 200
+    val: 5
+  video_logging_fps: 4
+  visuals_per_batch_to_log: 1
+  scalar_keys_to_log:
+    train:
+      keys_to_log:
+        - loss_objective
+        - loss_camera
+        - loss_T
+        - loss_R
+        - loss_FL
+        - loss_conf_depth
+        - loss_reg_depth
+        - loss_grad_depth
+        - loss_conf_point
+        - loss_reg_point
+        - loss_grad_point
+        - loss_reg_nocs
+        - loss_grad_nocs
+        - loss_nocs_total
+        - loss_diversity
+        - loss_cd
+        - loss_keypoint_total
+        - loss_abs_pose
+        - loss_pose_R
+        - loss_pose_t
+        - loss_pose_s
+        - loss_cycle_consistency
+        - loss_cycle_R
+        - loss_cycle_t
+        - loss_absolute_scale
+        - loss_abs_translation
+        - loss_abs_size
+        - loss_rel_scale
+        - loss_rel_scale_logspace
+        - loss_recon
+        - loss_delta
+        - loss_infonce
+        - loss_instance_consistency
+        - stat_infonce_pos_count
+        - stat_infonce_pos_sim
+        - stat_infonce_neg_sim
+        - stat_infonce_gap
+
+    val:
+      keys_to_log:
+        - loss_objective
+        - loss_camera
+        - loss_T
+        - loss_R
+        - loss_FL
+        - loss_conf_depth
+        - loss_reg_depth
+        - loss_grad_depth
+        - loss_conf_point
+        - loss_reg_point
+        - loss_grad_point
+        - loss_reg_nocs
+        - loss_grad_nocs
+        - loss_nocs_total
+        - loss_diversity
+        - loss_cd
+        - loss_keypoint_total
+        - loss_abs_pose
+        - loss_pose_R
+        - loss_pose_t
+        - loss_pose_s
+        - loss_cycle_consistency
+        - loss_cycle_R
+        - loss_cycle_t
+        - loss_absolute_scale
+        - loss_abs_translation
+        - loss_abs_size
+        - loss_rel_scale
+        - loss_rel_scale_logspace
+        - loss_recon
+        - loss_delta
+        - loss_infonce
+        - loss_instance_consistency
+        - stat_infonce_pos_count
+        - stat_infonce_pos_sim
+        - stat_infonce_neg_sim
+        - stat_infonce_gap
+
+checkpoint:
+  save_dir: ${logging.log_dir}/ckpts
+  save_freq: 1
+  resume_checkpoint_path: null
+  strict: False
+  load_optimizer: False
+  load_training_progress: False
+
+loss:
+  _target_: loss.MultitaskLoss
+  camera: 
+    weight: 5.0  # Camera-agnostic: predict intrinsics (camera_head is primary)
+    loss_type: "l1"
+  depth:
+    weight: 1.0
+    gradient_loss_fn: "grad" 
+    valid_range: 0.98
+  point:
+    weight: 1.0
+    gradient_loss_fn: "grad" 
+    valid_range: 0.98
+  nocs:
+    weight: 2.0
+    gradient_loss_fn: null  # Not applicable for sparse keypoints
+    valid_range: 0.98
+    smooth_l1_threshold: 0.1
+    use_analytical_nocs_gt: False  # Compute NOCS GT analytically from GT pose
+    enable_keypoint_losses: true
+    keypoint_weight: 0.4  # Balance keypoint branch against depth/point losses
+    keypoint_loss_weights:
+      diversity: 5.0  # Reduced to avoid over-regularizing keypoint spread
+      cd: 2.0
+    diversity_threshold: 0.01  # Characteristic scale, not hard cutoff with exponential loss
+    diversity_loss_type: "linear"  # "exponential" (non-saturating) or "linear" (original)
+    use_adaptive_threshold: true  # Scale threshold based on object size
+    cd_smooth_threshold: 0.05  # Smooth L1 threshold for CD loss
+    component_weights:
+      conf: 1.0
+      reg: 1.0
+      grad: 1.0
+  pose:
+    weight: 1.0
+    rotation_weight: 1.0
+    translation_weight: 0.3
+    size_weight: 0.3
+    rotation_loss_type: "frobenius"  # "geodesic" (SO(3) proper metric) or "frobenius" (legacy)
+    multi_view_pose_aggregation: True  # Supervise frame-0 only when multi-view aggregation is active
+  infonce:
+    weight: 1.0
+    temperature: 0.1
+    instance_weight: 0.05
+    positive_mode: logavg
+  scale:
+    weight: 1.0
+    t_weight: 1.0      # Weight for absolute translation loss
+    s_weight: 1.0      # Weight for absolute size loss
+    loss_type: "l1"    # Loss type: "l1" or "l2"
+  rel_scale:
+    weight: 0.3
+    smooth_l1_beta: 0.1  # Smooth L1 threshold: errors > 0.1 in log space (~10% scale error) treated as outliers 
+  recon:
+    weight: 10.0          # Weight for Chamfer distance reconstruction loss
+    delta_weight: 1.0    # Weight for L2 norm regularization of reconstruction deltas
+    use_mask: false      # Whether to use point cloud mask for valid points
+
+optim:
+  param_group_modifiers: True 
+  
+  optimizer:
+    _target_: torch.optim.AdamW
+    lr: 5e-7 
+    weight_decay: 0.01  # Reduced for finetune (was 0.05)
+  
+  param_groups:
+    - module_names: ["*nocs_head*", "*pose_head*", "*keypoint_detector*", "*visual_geo_fusion*", "*visual_projector*", "*pts_projector*", "*obj_encoder*", "*absolute_scale_head*", "*rel_scale_head*", "*cross_frame_attn*"]
+      lr: 1e-4
+      weight_decay: 0.005  # Reduced for task heads finetune (was 0.01) 
+
+  frozen_module_names:
+    #  - "*aggregator.patch_embed*"
+     - "*aggregator*"
+     - "*sonata_backbone*"
+    #  - "*absolute_scale_head*"
+     - "*depth*"
+     - "*point_head*"
+    #  - "*txt_encoder*"
+
+  amp:
+    enabled: True
+    amp_dtype: bfloat16
+  gradient_clip:
+    _target_: train_utils.gradient_clip.GradientClipper
+    configs:
+      - module_name: ["aggregator"]
+        max_norm: 1.0
+        norm_type: 2
+      - module_name: ["depth"]
+        max_norm: 1.0
+        norm_type: 2
+      - module_name: ["camera"]
+        max_norm: 0.5
+        norm_type: 2
+      - module_name: ["point"]
+        max_norm: 0.5
+        norm_type: 2
+      - module_name: ["nocs"]
+        max_norm: 2.0
+        norm_type: 2
+      - module_name: ["pose"]
+        max_norm: 2.0
+        norm_type: 2
+      - module_name: ["reconstructor"]
+        max_norm: 1.0
+        norm_type: 2
+      - module_name: ["visual_projector"]
+        max_norm: 1.0
+        norm_type: 2
+      - module_name: ["pts_projector"]
+        max_norm: 1.0
+        norm_type: 2
+      - module_name: ["keypoint_detector"]
+        max_norm: 1.0
+        norm_type: 2
+      - module_name: ["visual_geo_fusion"]
+        max_norm: 1.0
+        norm_type: 2
+      - module_name: ["obj_encoder"]
+        max_norm: 1.0
+        norm_type: 2
+      - module_name: ["sonata_backbone"]
+        max_norm: 1.0
+        norm_type: 2
+      - module_name: ["absolute_scale_head"]
+        max_norm: 1.0
+        norm_type: 2
+      - module_name: ["rel_scale_head"]
+        max_norm: 1.0
+        norm_type: 2
+      - module_name: ["cross_frame_attn"]
+        max_norm: 1.0
+        norm_type: 2
+  options:
+    lr:
+      - scheduler:
+          _target_: fvcore.common.param_scheduler.CompositeParamScheduler
+          schedulers:
+            - _target_: fvcore.common.param_scheduler.LinearParamScheduler
+              start_value: 1e-6
+              end_value: 1e-4
+            - _target_: fvcore.common.param_scheduler.CosineParamScheduler
+              start_value: 1e-4
+              end_value: 1e-6
+          lengths: [0.02, 0.98]
+          interval_scaling: ['rescaled', 'rescaled']
+    weight_decay:
+      - scheduler:
+          _target_: fvcore.common.param_scheduler.ConstantParamScheduler
+          value: 0.01  # Reduced for finetune (was 0.05)
+
+max_epochs: 30
+
+model:
+  _target_: opt.models.opt.OPT
+  enable_camera: True        # Camera-agnostic: always predict intrinsics
+  enable_point: True
+  enable_depth: True
+  enable_nocs: True
+  enable_pose: True
+  enable_metric_scale: True  # AbsoluteScaleHead (for absolute translation/size)
+  enable_rel_scale: False    # RelScaleHead (for RGB-based per-frame scale)
+  pose_head_type: "mlp"
+  kpt_num: 128               # Number of keypoints for KeyPointDetector
+  cross_frame_z_obj: True              # Mean-pool z_obj across S frames
+  cross_frame_nocs_attn: True          # Cross-frame attention before NOCS prediction
+  multi_view_pose_aggregation: True    # Aggregate S*K correspondences for a single pose
+
+distributed:
+  backend: nccl
+  comms_dtype: None
+  find_unused_parameters: True
+  timeout_mins: 10
+  gradient_as_bucket_view: True
+  bucket_cap_mb: 25
+  broadcast_buffers: True
+
+cuda:
+  cudnn_deterministic: False
+  cudnn_benchmark: False
+  allow_tf32: True

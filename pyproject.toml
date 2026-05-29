@@ -1,0 +1,54 @@
+# SPDX-License-Identifier: CC-BY-NC-SA-4.0
+# Project-owned portions of this file are licensed under CC-BY-NC-SA-4.0.
+# See LICENSE and NOTICE for details. Third-party notices remain applicable.
+
+[project]
+name = "opt-pose"
+version = "0.1.0"
+description = "OPT-Pose HouseCat6D training and pose inference release."
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "CC-BY-NC-SA-4.0" }
+dependencies = [
+    "numpy<2",
+    "Pillow",
+    "huggingface_hub",
+    "einops",
+    "safetensors",
+    "opencv-python",
+    "scipy",
+    "pandas",
+    "scikit-learn",
+    "tqdm",
+    "matplotlib",
+    "hydra-core",
+    "omegaconf",
+    "fvcore",
+    "iopath",
+    "wcmatch",
+    "addict",
+    "timm",
+    "tensorboard",
+    "open3d",
+    "PyOpenGL",
+    "vispy",
+    "plyfile",
+]
+
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = [
+    "opt*",
+    "sonata*",
+    "geo_models*",
+    "training*",
+    "utils*",
+    "bop_toolkit_lib*",
+]
+
+[tool.setuptools]
+py-modules = ["rel_pose_runtime_dataset"]

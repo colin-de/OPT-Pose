@@ -1,0 +1,35 @@
+# SPDX-License-Identifier: CC-BY-NC-SA-4.0
+# Project-owned portions of this file are licensed under CC-BY-NC-SA-4.0.
+# See LICENSE and NOTICE for details. Third-party notices remain applicable.
+
+# Install torch/torchvision/torchaudio separately for your CUDA version before
+# installing this file. The conda environment.yml pins a CUDA 12.4 setup.
+numpy==1.26.4
+Pillow
+huggingface_hub
+einops
+safetensors
+opencv-python
+scipy
+pandas
+scikit-learn
+tqdm
+matplotlib
+hydra-core
+omegaconf
+fvcore
+iopath
+wcmatch
+addict
+timm
+tensorboard
+open3d
+PyOpenGL
+vispy
+plyfile
+OpenEXR
+openexr-numpy
+
+# Install compatible wheels manually for your CUDA/PyTorch build:
+# spconv-cu12x
+# torch-scatter

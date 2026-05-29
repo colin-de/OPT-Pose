@@ -1,0 +1,53 @@
+# SPDX-License-Identifier: CC-BY-NC-SA-4.0
+# Project-owned portions of this file are licensed under CC-BY-NC-SA-4.0.
+# See LICENSE and NOTICE for details. Third-party notices remain applicable.
+
+name: opt-pose
+channels:
+  - pytorch
+  - nvidia/label/cuda-12.4.1
+  - nvidia
+  - conda-forge
+  - defaults
+dependencies:
+  - python=3.10
+  - pip
+  - cuda
+  - conda-forge::cudnn
+  - gcc=13.2
+  - gxx=13.2
+  - pytorch=2.5.0
+  - torchvision=0.20.0
+  - torchaudio=2.5.0
+  - pytorch-cuda=12.4
+  - numpy<=1.26.4
+  - ninja
+  - scipy
+  - addict
+  - timm
+  - psutil
+  - huggingface_hub
+  - open3d
+  - matplotlib
+  - pandas
+  - scikit-learn
+  - tqdm
+  - pip:
+      - einops
+      - safetensors
+      - opencv-python
+      - hydra-core
+      - omegaconf
+      - fvcore
+      - iopath
+      - wcmatch
+      - tensorboard
+      - PyOpenGL
+      - vispy
+      - plyfile
+      - OpenEXR
+      - openexr-numpy
+      # Install compatible wheels manually if conda/pip cannot resolve them
+      # for your CUDA/PyTorch build:
+      # - spconv-cu12x
+      # - torch-scatter
